@@ -19,31 +19,10 @@
             "image_m": "shopify://shop_images/Artboard_1.webp",
             "link": ""
           }
-        },
-        "slide_KKd7fQ": {
-          "type": "slide",
-          "settings": {
-            "link": ""
-          }
-        },
-        "slide_W33kpG": {
-          "type": "slide",
-          "settings": {
-            "link": ""
-          }
-        },
-        "slide_QhDCPi": {
-          "type": "slide",
-          "settings": {
-            "link": ""
-          }
         }
       },
       "block_order": [
-        "slide_AaDpAy",
-        "slide_KKd7fQ",
-        "slide_W33kpG",
-        "slide_QhDCPi"
+        "slide_AaDpAy"
       ],
       "name": "Clean Hero (Speed Boost)",
       "settings": {
