@@ -83,22 +83,11 @@
   }
 
   /* ── LINK WRAPPER ────────────────────────────────── */
-  #CleanSlider-{{ section.id }} .clean-hero-slide::before,
-  #CleanSlider-{{ section.id }} .clean-hero-slide::after,
-  #CleanSlider-{{ section.id }} .clean-hero-link::before,
-  #CleanSlider-{{ section.id }} .clean-hero-link::after {
-    display: none !important;
-    content: none !important;
-  }
-
   #CleanSlider-{{ section.id }} .clean-hero-link {
     display: block;
     width: 100%;
-    text-decoration: none !important;
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
+    text-decoration: none;
+    outline: none;
   }
 
   /* ── IMAGE WRAPPERS ──────────────────────────────── */
@@ -123,9 +112,6 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
   }
 
   /* ── RESPONSIVE VISIBILITY ───────────────────────── */
@@ -176,6 +162,17 @@
     background: #ffffff;
     transform: scale(1.2);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  /* ── FIX: kill subpixel line from ratio-box ─────── */
+  #CleanSlider-{{ section.id }} .img-wrap {
+    line-height: 0;
+    font-size: 0;
+  }
+
+  #CleanSlider-{{ section.id }} .clean-hero-slide {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 {%- endstyle -%}
 
