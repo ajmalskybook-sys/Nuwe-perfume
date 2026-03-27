@@ -117,18 +117,18 @@
 
   /* ── RESPONSIVE VISIBILITY ───────────────────────── */
   #CleanSlider-{{ section.id }} .desktop-only {
-    display: none;
+    display: none !important;
   }
   #CleanSlider-{{ section.id }} .mobile-only {
-    display: block;
+    display: block !important;
   }
 
   @media screen and (min-width: 768px) {
     #CleanSlider-{{ section.id }} .desktop-only {
-      display: block;
+      display: block !important;
     }
     #CleanSlider-{{ section.id }} .mobile-only {
-      display: none;
+      display: none !important;
     }
   }
 
