@@ -115,23 +115,6 @@
     vertical-align: top;
   }
 
-  /* ── RESPONSIVE VISIBILITY ───────────────────────── */
-  #CleanSlider-{{ section.id }} .desktop-only {
-    display: none !important;
-  }
-  #CleanSlider-{{ section.id }} .mobile-only {
-    display: block !important;
-  }
-
-  @media screen and (min-width: 768px) {
-    #CleanSlider-{{ section.id }} .desktop-only {
-      display: block !important;
-    }
-    #CleanSlider-{{ section.id }} .mobile-only {
-      display: none !important;
-    }
-  }
-
   /* ── DOTS ────────────────────────────────────────── */
   #CleanSlider-{{ section.id }} .clean-hero-dots {
     position: absolute;
@@ -163,6 +146,23 @@
     background: #ffffff;
     transform: scale(1.2);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  /* ── RESPONSIVE RATIO BOXES ─────────────────────── */
+  #CleanSlider-{{ section.id }} .ratio-box--desktop {
+    display: none;
+  }
+  #CleanSlider-{{ section.id }} .ratio-box--mobile {
+    display: block;
+  }
+
+  @media screen and (min-width: 768px) {
+    #CleanSlider-{{ section.id }} .ratio-box--desktop {
+      display: block;
+    }
+    #CleanSlider-{{ section.id }} .ratio-box--mobile {
+      display: none;
+    }
   }
 
   /* ── FIX: kill subpixel line from ratio-box ─────── */
@@ -206,61 +206,37 @@
           <div class="clean-hero-link">
         {%- endif -%}
 
-          {%- comment -%} ── DESKTOP IMAGE ── {%- endcomment -%}
-          <div class="img-wrap desktop-only">
-            <div class="ratio-box" style="padding-bottom: {{ desktop_ratio_val }};"></div>
-            {%- if block.settings.image_d != blank -%}
-              <img
-                src="{{ block.settings.image_d | image_url: width: 2000 }}"
-                srcset="{{ block.settings.image_d | image_url: width: 1000 }} 1000w,
-                        {{ block.settings.image_d | image_url: width: 1400 }} 1400w,
-                        {{ block.settings.image_d | image_url: width: 2000 }} 2000w,
-                        {{ block.settings.image_d | image_url: width: 3000 }} 3000w"
-                sizes="(min-width: 1200px) 1200px, 100vw"
-                alt="{{ block.settings.image_d.alt | escape }}"
-                width="{{ block.settings.image_d.width }}"
-                height="{{ block.settings.image_d.height }}"
-                loading="{{ img_loading }}"
-                fetchpriority="{{ img_priority }}"
-              >
-            {%- else -%}
-              {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
-            {%- endif -%}
-          </div>
-
-          {%- comment -%} ── MOBILE IMAGE ── {%- endcomment -%}
-          <div class="img-wrap mobile-only">
-            <div class="ratio-box" style="padding-bottom: {{ mobile_ratio_val }};"></div>
-            {%- if block.settings.image_m != blank -%}
-              <img
-                src="{{ block.settings.image_m | image_url: width: 800 }}"
-                srcset="{{ block.settings.image_m | image_url: width: 400 }} 400w,
-                        {{ block.settings.image_m | image_url: width: 600 }} 600w,
-                        {{ block.settings.image_m | image_url: width: 800 }} 800w,
-                        {{ block.settings.image_m | image_url: width: 1000 }} 1000w"
-                sizes="100vw"
-                alt="{{ block.settings.image_m.alt | escape }}"
-                width="{{ block.settings.image_m.width }}"
-                height="{{ block.settings.image_m.height }}"
-                loading="{{ img_loading }}"
-                fetchpriority="{{ img_priority }}"
-              >
-            {%- elsif block.settings.image_d != blank -%}
-              <img
-                src="{{ block.settings.image_d | image_url: width: 800 }}"
-                srcset="{{ block.settings.image_d | image_url: width: 400 }} 400w,
-                        {{ block.settings.image_d | image_url: width: 600 }} 600w,
-                        {{ block.settings.image_d | image_url: width: 800 }} 800w"
-                sizes="100vw"
-                alt="{{ block.settings.image_d.alt | escape }}"
-                width="{{ block.settings.image_d.width }}"
-                height="{{ block.settings.image_d.height }}"
-                loading="{{ img_loading }}"
-                fetchpriority="{{ img_priority }}"
-              >
-            {%- else -%}
-              {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
-            {%- endif -%}
+          {%- comment -%} ── IMAGE (picture: mobile source + desktop fallback) ── {%- endcomment -%}
+          <div class="img-wrap">
+            <div class="ratio-box ratio-box--desktop" style="padding-bottom: {{ desktop_ratio_val }};"></div>
+            <div class="ratio-box ratio-box--mobile" style="padding-bottom: {{ mobile_ratio_val }};"></div>
+            <picture>
+              {%- if block.settings.image_m != blank -%}
+                <source
+                  media="(max-width: 767px)"
+                  srcset="{{ block.settings.image_m | image_url: width: 400 }} 400w,
+                          {{ block.settings.image_m | image_url: width: 600 }} 600w,
+                          {{ block.settings.image_m | image_url: width: 800 }} 800w"
+                  sizes="100vw"
+                >
+              {%- endif -%}
+              {%- if block.settings.image_d != blank -%}
+                <img
+                  src="{{ block.settings.image_d | image_url: width: 2000 }}"
+                  srcset="{{ block.settings.image_d | image_url: width: 1000 }} 1000w,
+                          {{ block.settings.image_d | image_url: width: 1400 }} 1400w,
+                          {{ block.settings.image_d | image_url: width: 2000 }} 2000w"
+                  sizes="(min-width: 1200px) 1200px, 100vw"
+                  alt="{{ block.settings.image_d.alt | escape }}"
+                  width="{{ block.settings.image_d.width }}"
+                  height="{{ block.settings.image_d.height }}"
+                  loading="{{ img_loading }}"
+                  fetchpriority="{{ img_priority }}"
+                >
+              {%- else -%}
+                {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+              {%- endif -%}
+            </picture>
           </div>
 
         {%- if block.settings.link != blank -%}
