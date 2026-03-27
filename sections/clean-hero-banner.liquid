@@ -1,0 +1,471 @@
+{%- liquid
+  comment
+    ——————————————————————————————————————————
+    Aspect ratio calculation (runs once at render time)
+    ——————————————————————————————————————————
+  endcomment
+
+  assign first_block = section.blocks.first
+
+  comment — Desktop aspect ratio —
+  endcomment
+  if section.settings.desktop_ratio == 'adapt'
+    if first_block and first_block.settings.image_d != blank
+      assign desktop_ratio_val = 1 | divided_by: first_block.settings.image_d.aspect_ratio | times: 100 | append: '%'
+    else
+      assign desktop_ratio_val = '56.25%'
+    endif
+  else
+    assign desktop_ratio_val = section.settings.desktop_ratio
+  endif
+
+  comment — Mobile aspect ratio —
+  endcomment
+  if section.settings.mobile_ratio == 'adapt'
+    if first_block
+      if first_block.settings.image_m != blank
+        assign mobile_ratio_val = 1 | divided_by: first_block.settings.image_m.aspect_ratio | times: 100 | append: '%'
+      elsif first_block.settings.image_d != blank
+        assign mobile_ratio_val = 1 | divided_by: first_block.settings.image_d.aspect_ratio | times: 100 | append: '%'
+      else
+        assign mobile_ratio_val = '125%'
+      endif
+    else
+      assign mobile_ratio_val = '125%'
+    endif
+  else
+    assign mobile_ratio_val = section.settings.mobile_ratio
+  endif
+
+  comment — Layout —
+  endcomment
+  if section.settings.section_width == 'page'
+    assign wrapper_class = 'clean-hero--page'
+  else
+    assign wrapper_class = 'clean-hero--full'
+  endif
+-%}
+
+{%- style -%}
+  /* ── SECTION CONTAINER ───────────────────────────── */
+  #CleanSlider-{{ section.id }} {
+    background-color: {{ section.settings.bg_color }};
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #CleanSlider-{{ section.id }}.clean-hero--page {
+    max-width: 1200px;
+    width: calc(100% - 30px);
+    margin: 20px auto;
+  }
+
+  #CleanSlider-{{ section.id }}.clean-hero--full {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* ── TRACK ───────────────────────────────────────── */
+  #CleanSlider-{{ section.id }} .clean-hero-track {
+    display: flex;
+    will-change: transform;
+    transform: translateX(0);
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* ── SLIDE ───────────────────────────────────────── */
+  #CleanSlider-{{ section.id }} .clean-hero-slide {
+    min-width: 100%;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  /* ── LINK WRAPPER ────────────────────────────────── */
+  #CleanSlider-{{ section.id }} .clean-hero-link {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    outline: none;
+  }
+
+  /* ── IMAGE WRAPPERS ──────────────────────────────── */
+  #CleanSlider-{{ section.id }} .img-wrap {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  #CleanSlider-{{ section.id }} .img-wrap .ratio-box {
+    position: relative;
+    width: 100%;
+    height: 0;
+  }
+
+  #CleanSlider-{{ section.id }} .img-wrap img,
+  #CleanSlider-{{ section.id }} .img-wrap svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ── RESPONSIVE VISIBILITY ───────────────────────── */
+  #CleanSlider-{{ section.id }} .desktop-only {
+    display: none;
+  }
+  #CleanSlider-{{ section.id }} .mobile-only {
+    display: block;
+  }
+
+  @media screen and (min-width: 768px) {
+    #CleanSlider-{{ section.id }} .desktop-only {
+      display: block;
+    }
+    #CleanSlider-{{ section.id }} .mobile-only {
+      display: none;
+    }
+  }
+
+  /* ── DOTS ────────────────────────────────────────── */
+  #CleanSlider-{{ section.id }} .clean-hero-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #CleanSlider-{{ section.id }} .clean-hero-dots button {
+    pointer-events: auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.4);
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
+    box-shadow: none;
+  }
+
+  #CleanSlider-{{ section.id }} .clean-hero-dots button.is-active {
+    background: #ffffff;
+    transform: scale(1.2);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+{%- endstyle -%}
+
+<div
+  id="CleanSlider-{{ section.id }}"
+  class="{{ wrapper_class }}"
+  data-speed="{{ section.settings.autoplay_speed | times: 1000 }}"
+>
+  {%- comment -%} ── TRACK ── {%- endcomment -%}
+  <div class="clean-hero-track">
+
+    {%- for block in section.blocks -%}
+      {%- assign block_idx = forloop.index0 -%}
+
+      {%- comment -%} LCP priority flags {%- endcomment -%}
+      {%- if block_idx < 2 -%}
+        {%- assign img_loading = 'eager' -%}
+        {%- assign img_priority = 'high' -%}
+      {%- else -%}
+        {%- assign img_loading = 'lazy' -%}
+        {%- assign img_priority = 'auto' -%}
+      {%- endif -%}
+
+      <div class="clean-hero-slide" {{ block.shopify_attributes }}>
+
+        {%- comment -%} Link or div wrapper {%- endcomment -%}
+        {%- if block.settings.link != blank -%}
+          <a href="{{ block.settings.link }}" class="clean-hero-link" aria-label="Slide {{ forloop.index }}">
+        {%- else -%}
+          <div class="clean-hero-link">
+        {%- endif -%}
+
+          {%- comment -%} ── DESKTOP IMAGE ── {%- endcomment -%}
+          <div class="img-wrap desktop-only">
+            <div class="ratio-box" style="padding-bottom: {{ desktop_ratio_val }};"></div>
+            {%- if block.settings.image_d != blank -%}
+              <img
+                src="{{ block.settings.image_d | image_url: width: 2000 }}"
+                srcset="{{ block.settings.image_d | image_url: width: 1000 }} 1000w,
+                        {{ block.settings.image_d | image_url: width: 1400 }} 1400w,
+                        {{ block.settings.image_d | image_url: width: 2000 }} 2000w,
+                        {{ block.settings.image_d | image_url: width: 3000 }} 3000w"
+                sizes="(min-width: 1200px) 1200px, 100vw"
+                alt="{{ block.settings.image_d.alt | escape }}"
+                width="{{ block.settings.image_d.width }}"
+                height="{{ block.settings.image_d.height }}"
+                loading="{{ img_loading }}"
+                fetchpriority="{{ img_priority }}"
+              >
+            {%- else -%}
+              {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+            {%- endif -%}
+          </div>
+
+          {%- comment -%} ── MOBILE IMAGE ── {%- endcomment -%}
+          <div class="img-wrap mobile-only">
+            <div class="ratio-box" style="padding-bottom: {{ mobile_ratio_val }};"></div>
+            {%- if block.settings.image_m != blank -%}
+              <img
+                src="{{ block.settings.image_m | image_url: width: 800 }}"
+                srcset="{{ block.settings.image_m | image_url: width: 400 }} 400w,
+                        {{ block.settings.image_m | image_url: width: 600 }} 600w,
+                        {{ block.settings.image_m | image_url: width: 800 }} 800w,
+                        {{ block.settings.image_m | image_url: width: 1000 }} 1000w"
+                sizes="100vw"
+                alt="{{ block.settings.image_m.alt | escape }}"
+                width="{{ block.settings.image_m.width }}"
+                height="{{ block.settings.image_m.height }}"
+                loading="{{ img_loading }}"
+                fetchpriority="{{ img_priority }}"
+              >
+            {%- elsif block.settings.image_d != blank -%}
+              <img
+                src="{{ block.settings.image_d | image_url: width: 800 }}"
+                srcset="{{ block.settings.image_d | image_url: width: 400 }} 400w,
+                        {{ block.settings.image_d | image_url: width: 600 }} 600w,
+                        {{ block.settings.image_d | image_url: width: 800 }} 800w"
+                sizes="100vw"
+                alt="{{ block.settings.image_d.alt | escape }}"
+                width="{{ block.settings.image_d.width }}"
+                height="{{ block.settings.image_d.height }}"
+                loading="{{ img_loading }}"
+                fetchpriority="{{ img_priority }}"
+              >
+            {%- else -%}
+              {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+            {%- endif -%}
+          </div>
+
+        {%- if block.settings.link != blank -%}
+          </a>
+        {%- else -%}
+          </div>
+        {%- endif -%}
+
+      </div>
+    {%- endfor -%}
+
+  </div>{%- comment -%} / .clean-hero-track {%- endcomment -%}
+
+  {%- comment -%} ── NAVIGATION DOTS ── {%- endcomment -%}
+  {%- if section.settings.show_dots and section.blocks.size > 1 -%}
+    <div class="clean-hero-dots" role="tablist" aria-label="Slide navigation">
+      {%- for block in section.blocks -%}
+        <button
+          type="button"
+          role="tab"
+          aria-label="Go to slide {{ forloop.index }}"
+          aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+          class="{% if forloop.first %}is-active{% endif %}"
+          data-idx="{{ forloop.index0 }}"
+        ></button>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var container = document.getElementById('CleanSlider-{{ section.id }}');
+    if (!container) return;
+
+    var track     = container.querySelector('.clean-hero-track');
+    var slides    = container.querySelectorAll('.clean-hero-slide');
+    var dots      = container.querySelectorAll('.clean-hero-dots button');
+    var total     = slides.length;
+
+    if (total <= 1) return;
+
+    var speed     = parseInt(container.getAttribute('data-speed'), 10) || 5000;
+    var current   = 0;
+    var timer     = null;
+    var paused    = false;
+
+    /* ── MOVE ── */
+    function goTo(idx) {
+      current = ((idx % total) + total) % total;
+      track.style.transform = 'translateX(-' + (current * 100) + '%)';
+
+      dots.forEach(function (dot, i) {
+        var isActive = i === current;
+        dot.classList.toggle('is-active', isActive);
+        dot.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    /* ── AUTOPLAY ── */
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(function () {
+        if (!paused) goTo(current + 1);
+      }, speed);
+    }
+
+    function stopTimer() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    /* ── HOVER PAUSE ── */
+    container.addEventListener('mouseenter', function () { paused = true; });
+    container.addEventListener('mouseleave', function () { paused = false; });
+
+    /* ── DOT CLICKS ── */
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function () {
+        stopTimer();
+        goTo(parseInt(dot.getAttribute('data-idx'), 10));
+        startTimer();
+      });
+    });
+
+    /* ── INIT ── */
+    goTo(0);
+    startTimer();
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Clean Hero Banner",
+  "tag": "section",
+  "class": "clean-hero-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section Width",
+      "options": [
+        { "value": "full",  "label": "Full Width" },
+        { "value": "page",  "label": "Page Width" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "header",
+      "content": "Aspect Ratio — Desktop"
+    },
+    {
+      "type": "select",
+      "id": "desktop_ratio",
+      "label": "Desktop Aspect Ratio",
+      "options": [
+        { "value": "adapt",   "label": "Adapt to first image" },
+        { "value": "56.25%",  "label": "16:9" },
+        { "value": "41.6%",   "label": "21:9" },
+        { "value": "75%",     "label": "4:3" },
+        { "value": "100%",    "label": "1:1" }
+      ],
+      "default": "56.25%"
+    },
+    {
+      "type": "header",
+      "content": "Aspect Ratio — Mobile"
+    },
+    {
+      "type": "select",
+      "id": "mobile_ratio",
+      "label": "Mobile Aspect Ratio",
+      "options": [
+        { "value": "adapt",   "label": "Adapt to first image" },
+        { "value": "125%",    "label": "4:5" },
+        { "value": "177.7%",  "label": "9:16" },
+        { "value": "100%",    "label": "1:1" },
+        { "value": "75%",     "label": "4:3" }
+      ],
+      "default": "125%"
+    },
+    {
+      "type": "header",
+      "content": "Autoplay"
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "label": "Autoplay Speed",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "sec",
+      "default": 5
+    },
+    {
+      "type": "header",
+      "content": "Navigation"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dots",
+      "label": "Show Navigation Dots",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image_d",
+          "label": "Desktop Image"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_m",
+          "label": "Mobile Image (Optional)"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Slide Link (Whole Slide)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Clean Hero (Speed Boost)",
+      "blocks": [
+        { "type": "slide" },
+        { "type": "slide" },
+        { "type": "slide" },
+        { "type": "slide" },
+        { "type": "slide" }
+      ]
+    }
+  ]
+}
+{% endschema %}
