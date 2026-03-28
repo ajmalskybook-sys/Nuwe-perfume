@@ -1,0 +1,1058 @@
+{%- liquid
+  assign first_block = section.blocks | first
+
+  comment
+    Desktop aspect ratio
+  endcomment
+  assign ratio_d = 56.25
+  if section.settings.desktop_ratio == 'adapt'
+    if first_block != blank and first_block.settings.image_desktop != blank
+      assign ratio_d = 1.0 | divided_by: first_block.settings.image_desktop.aspect_ratio | times: 100
+    endif
+  elsif section.settings.desktop_ratio == '21:9'
+    assign ratio_d = 42.86
+  elsif section.settings.desktop_ratio == '4:3'
+    assign ratio_d = 75.0
+  elsif section.settings.desktop_ratio == '3:2'
+    assign ratio_d = 66.67
+  elsif section.settings.desktop_ratio == '1:1'
+    assign ratio_d = 100.0
+  endif
+
+  comment
+    Mobile aspect ratio
+  endcomment
+  assign ratio_m = 133.33
+  if section.settings.mobile_ratio == 'adapt'
+    if first_block != blank
+      if first_block.settings.image_mobile != blank
+        assign ratio_m = 1.0 | divided_by: first_block.settings.image_mobile.aspect_ratio | times: 100
+      elsif first_block.settings.image_desktop != blank
+        assign ratio_m = 1.0 | divided_by: first_block.settings.image_desktop.aspect_ratio | times: 100
+      endif
+    endif
+  elsif section.settings.mobile_ratio == '16:9'
+    assign ratio_m = 56.25
+  elsif section.settings.mobile_ratio == '4:3'
+    assign ratio_m = 75.0
+  elsif section.settings.mobile_ratio == '3:2'
+    assign ratio_m = 66.67
+  elsif section.settings.mobile_ratio == '1:1'
+    assign ratio_m = 100.0
+  elsif section.settings.mobile_ratio == '2:3'
+    assign ratio_m = 150.0
+  elsif section.settings.mobile_ratio == '9:16'
+    assign ratio_m = 177.78
+  endif
+-%}
+
+<style>
+  #hb-{{ section.id }} {
+    --hb-ratio-d: {{ ratio_d }}%;
+    --hb-ratio-m: {{ ratio_m }}%;
+    --hb-arrow-color: {{ section.settings.color_arrow }};
+    --hb-arrow-bg: rgba({{ section.settings.bg_arrow.red }},{{ section.settings.bg_arrow.green }},{{ section.settings.bg_arrow.blue }},{{ section.settings.opacity_arrow }});
+    --hb-dot-color: rgba({{ section.settings.color_dot_nav.red }},{{ section.settings.color_dot_nav.green }},{{ section.settings.color_dot_nav.blue }},0.5);
+    --hb-dot-active: rgba({{ section.settings.color_dot_active.red }},{{ section.settings.color_dot_active.green }},{{ section.settings.color_dot_active.blue }},1);
+    --hb-speed: {{ section.settings.autorotate_speed }}s;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Ratio spacer — drives height via padding-top trick */
+  #hb-{{ section.id }} .hb-ratio-spacer {
+    display: block;
+    width: 100%;
+  }
+  @media (max-width: 749px) {
+    #hb-{{ section.id }} .hb-ratio-spacer {
+      padding-top: var(--hb-ratio-m);
+    }
+  }
+  @media (min-width: 750px) {
+    #hb-{{ section.id }} .hb-ratio-spacer {
+      padding-top: var(--hb-ratio-d);
+    }
+  }
+
+  /* Slides container fills the padded space */
+  #hb-{{ section.id }} .hb-slides-container {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Individual slide */
+  #hb-{{ section.id }} .hb-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.65s ease;
+    pointer-events: none;
+  }
+  #hb-{{ section.id }} .hb-slide.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+  }
+
+  /* Slide transition variant */
+  #hb-{{ section.id }}.hb-trans-slide .hb-slide {
+    opacity: 1;
+    transform: translateX(100%);
+    transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  #hb-{{ section.id }}.hb-trans-slide .hb-slide.is-active {
+    transform: translateX(0);
+  }
+  #hb-{{ section.id }}.hb-trans-slide .hb-slide.is-leaving {
+    transform: translateX(-100%);
+    z-index: 0;
+  }
+
+  /* Zoom transition variant */
+  #hb-{{ section.id }}.hb-trans-zoom .hb-slide.is-active .hb-image {
+    animation: hb-zoom-{{ section.id }} var(--hb-speed, 5s) ease-out forwards;
+  }
+  @keyframes hb-zoom-{{ section.id }} {
+    from { transform: scale(1.08); }
+    to   { transform: scale(1); }
+  }
+
+  /* Images */
+  #hb-{{ section.id }} .hb-image {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    will-change: transform;
+  }
+  #hb-{{ section.id }} .hb-image .placeholder-svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Show / hide per device */
+  @media (max-width: 749px) {
+    #hb-{{ section.id }} .hb-image-desktop { display: none; }
+    #hb-{{ section.id }} .hb-image-mobile  { display: block; }
+    /* No mobile image set — fall back to desktop image */
+    #hb-{{ section.id }} .hb-image-desktop.hb-fallback { display: block; }
+  }
+  @media (min-width: 750px) {
+    #hb-{{ section.id }} .hb-image-desktop { display: block; }
+    #hb-{{ section.id }} .hb-image-mobile  { display: none; }
+  }
+
+  /* Overlay */
+  #hb-{{ section.id }} .hb-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Content wrapper */
+  #hb-{{ section.id }} .hb-content-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+  }
+
+  #hb-{{ section.id }} .hb-content-inner {
+    width: 100%;
+    display: flex;
+  }
+
+  /* Vertical alignment */
+  #hb-{{ section.id }} .hb-valign-top    { align-items: flex-start; }
+  #hb-{{ section.id }} .hb-valign-center { align-items: center; }
+  #hb-{{ section.id }} .hb-valign-bottom { align-items: flex-end; }
+
+  #hb-{{ section.id }} .hb-content-block {
+    padding: 40px;
+    width: 100%;
+  }
+  @media (max-width: 749px) {
+    #hb-{{ section.id }} .hb-content-block {
+      padding: 24px 16px;
+    }
+  }
+
+  #hb-{{ section.id }} .hb-toptitle {
+    font-size: 0.85em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+  }
+  #hb-{{ section.id }} .hb-title {
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  #hb-{{ section.id }} .hb-subtitle {
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  #hb-{{ section.id }} .hb-btn-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── Arrow navigation ────────────────────────────────────── */
+  #hb-{{ section.id }} .hb-arrows {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  @media (max-width: 749px) {
+    #hb-{{ section.id }} .hb-arrows { display: none; }
+  }
+  #hb-{{ section.id }} .hb-arrow-btn {
+    pointer-events: auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: var(--hb-arrow-bg);
+    color: var(--hb-arrow-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+  #hb-{{ section.id }} .hb-arrow-btn:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+  #hb-{{ section.id }} .hb-arrow-btn svg {
+    display: block;
+    pointer-events: none;
+  }
+
+  /* ── Dot navigation ──────────────────────────────────────── */
+  #hb-{{ section.id }} .hb-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 749px) {
+    #hb-{{ section.id }} .hb-dots { bottom: 10px; }
+  }
+
+  {%- if section.settings.dot_style == 'circle' -%}
+  #hb-{{ section.id }} .hb-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    background: var(--hb-dot-color);
+    transition: background 0.3s, transform 0.3s;
+  }
+  #hb-{{ section.id }} .hb-dot.is-active {
+    background: var(--hb-dot-active);
+    transform: scale(1.35);
+  }
+  {%- else -%}
+  /* Bar / progress dot style */
+  #hb-{{ section.id }} .hb-dot {
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    background: var(--hb-dot-color);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  #hb-{{ section.id }} .hb-dot.is-active {
+    background: var(--hb-dot-color);
+  }
+  #hb-{{ section.id }} .hb-dot.is-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--hb-dot-active);
+    {%- if section.settings.autorotate -%}
+    animation: hb-bar-{{ section.id }} var(--hb-speed) linear 1;
+    {%- else -%}
+    width: 100%;
+    {%- endif -%}
+  }
+  @keyframes hb-bar-{{ section.id }} {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+  {%- endif -%}
+</style>
+
+<!-- hero-banner.liquid -->
+<div class="{{ section.settings.width }}" data-section-id="{{ section.id }}" data-section-type="hero-banner">
+  {%- if section.blocks.size > 0 -%}
+
+  <div id="hb-{{ section.id }}"
+       class="hb-section hb-trans-{{ section.settings.transition }}"
+       data-autoplay="{{ section.settings.autorotate }}"
+       data-speed="{{ section.settings.autorotate_speed | times: 1000 }}"
+       data-transition="{{ section.settings.transition }}"
+       role="region"
+       aria-roledescription="carousel"
+       aria-label="Hero Banner">
+
+    <!-- Height spacer (aspect ratio box) -->
+    <div class="hb-ratio-spacer" aria-hidden="true"></div>
+
+    <!-- Slides -->
+    <div class="hb-slides-container" aria-live="polite">
+      {%- for block in section.blocks -%}
+      {%- liquid
+        assign has_mobile_img = false
+        if block.settings.image_mobile != blank
+          assign has_mobile_img = true
+        endif
+
+        assign text_parts    = block.settings.text_alignment | split: ' '
+        assign text_halign   = text_parts | first
+        assign text_valign   = text_parts | last | strip
+
+        assign show_btn1 = false
+        assign show_btn2 = false
+        if block.settings.button_label != blank and block.settings.button_link != blank
+          assign show_btn1 = true
+        endif
+        if block.settings.button_label_2 != blank and block.settings.button_link_2 != blank
+          assign show_btn2 = true
+        endif
+      -%}
+
+      <div class="hb-slide{% if forloop.first %} is-active{% endif %}"
+           {{ block.shopify_attributes }}
+           role="group"
+           aria-roledescription="slide"
+           aria-label="Slide {{ forloop.index }} of {{ section.blocks.size }}"
+           style="background-color: {{ block.settings.bg_color }};">
+
+        {%- comment -%} Overlay {%- endcomment -%}
+        {%- if block.settings.show_overlay -%}
+        {%- capture ov_rgb -%}{{ block.settings.overlay_color.red }},{{ block.settings.overlay_color.green }},{{ block.settings.overlay_color.blue }}{%- endcapture -%}
+        <div class="hb-overlay"
+             style="background: {%- if block.settings.gradient_overlay -%}linear-gradient(180deg,rgba({{ ov_rgb }},0) 0%,rgba({{ ov_rgb }},{{ block.settings.overlay_opacity }}) 100%){%- else -%}rgba({{ ov_rgb }},{{ block.settings.overlay_opacity }}){%- endif -%};"></div>
+        {%- endif -%}
+
+        {%- comment -%} Desktop image {%- endcomment -%}
+        {%- if block.settings.image_desktop != blank -%}
+        <div class="hb-image hb-image-desktop{% unless has_mobile_img %} hb-fallback{% endunless %} lazyload"
+             data-bgset="{%- render 'bgset', image: block.settings.image_desktop -%}"
+             data-sizes="auto"
+             style="background-position: {{ block.settings.img_position }};"></div>
+        {%- else -%}
+        <div class="hb-image hb-image-desktop{% unless has_mobile_img %} hb-fallback{% endunless %}">
+          {%- capture ph_i -%}{%- cycle 1, 2 -%}{%- endcapture -%}
+          {{ 'lifestyle-' | append: ph_i | placeholder_svg_tag: 'placeholder-svg' }}
+        </div>
+        {%- endif -%}
+
+        {%- comment -%} Mobile image {%- endcomment -%}
+        {%- if has_mobile_img -%}
+        <div class="hb-image hb-image-mobile lazyload"
+             data-bgset="{%- render 'bgset', image: block.settings.image_mobile -%}"
+             data-sizes="auto"
+             style="background-position: {{ block.settings.img_position_mobile }};"></div>
+        {%- endif -%}
+
+        {%- comment -%} Content overlay {%- endcomment -%}
+        {%- unless block.settings.slide_title == blank and block.settings.slide_toptitle == blank and block.settings.subheading == blank and show_btn1 == false and show_btn2 == false -%}
+        <div class="hb-content-wrap">
+          <div class="hb-content-inner hb-valign-{{ text_valign }} text-{{ text_halign }}">
+            <div class="{{ section.settings.inner_width }}">
+              <div class="hb-content-block">
+
+                {%- unless block.settings.slide_toptitle == blank -%}
+                <span class="hb-toptitle" style="color:{{ block.settings.slide_toptitle_color }};">
+                  {{ block.settings.slide_toptitle }}
+                </span>
+                {%- endunless -%}
+
+                {%- unless block.settings.slide_title == blank -%}
+                <h2 class="hb-title h1 mega-title font-family-1" style="color:{{ block.settings.slide_title_color }};">
+                  {{ block.settings.slide_title }}
+                </h2>
+                {%- endunless -%}
+
+                {%- unless block.settings.subheading == blank -%}
+                <div class="hb-subtitle mega-subtitle fz-2" style="color:{{ block.settings.subheading_color }};">
+                  {{ block.settings.subheading }}
+                </div>
+                {%- endunless -%}
+
+                {%- if show_btn1 or show_btn2 -%}
+                <div class="hb-btn-wrap">
+
+                  {%- if show_btn1 -%}
+                  <style>
+                    .btn-theme.hb-btn-{{ block.id }}{color:{{ block.settings.color_button }};border:1px solid {{ block.settings.bg_button }};background-color:{{ block.settings.bg_button }};}
+                    .btn-theme.hb-btn-{{ block.id }}:hover{color:{{ block.settings.color_button_hover }};border-color:{{ block.settings.bg_button_hover }};{% unless settings.enable_button_hover %}background-color:{{ block.settings.bg_button_hover }};{% endunless %}}
+                    .btn-theme.hb-btn-{{ block.id }}::before{background-color:{{ block.settings.bg_button_hover }};}
+                    .btn-outline.hb-btn-{{ block.id }}{color:{{ block.settings.color_button }};border:2px solid {{ block.settings.bg_button }};background-color:transparent;}
+                    .btn-outline.hb-btn-{{ block.id }}:hover{border-color:{{ block.settings.bg_button_hover }};color:{{ block.settings.color_button_hover }};{% unless settings.enable_button_hover %}background-color:{{ block.settings.bg_button_hover }};{% endunless %}}
+                    .btn-outline.hb-btn-{{ block.id }}::before{background-color:{{ block.settings.bg_button_hover }};}
+                    .btn-underline.hb-btn-{{ block.id }}{color:{{ block.settings.color_button }} !important;}
+                    .btn-underline.hb-btn-{{ block.id }}:before{background:{{ block.settings.bg_button }} !important;}
+                    .btn-underline.hb-btn-{{ block.id }}:after{background:{{ block.settings.bg_button_hover }} !important;}
+                    .btn-underline.hb-btn-{{ block.id }}:hover{color:{{ block.settings.color_button_hover }} !important;}
+                  </style>
+                  <a href="{{ block.settings.button_link }}" class="btn hb-btn-{{ block.id }} {{ block.settings.stylebtns }}">
+                    <span>{{ block.settings.button_label }}</span>
+                  </a>
+                  {%- endif -%}
+
+                  {%- if show_btn2 -%}
+                  <style>
+                    .btn-theme.hb-btn2-{{ block.id }}{color:{{ block.settings.color_button_2 }};border:1px solid {{ block.settings.bg_button_2 }};background-color:{{ block.settings.bg_button_2 }};}
+                    .btn-theme.hb-btn2-{{ block.id }}:hover{color:{{ block.settings.color_button_hover_2 }};border-color:{{ block.settings.bg_button_hover_2 }};{% unless settings.enable_button_hover %}background-color:{{ block.settings.bg_button_hover_2 }};{% endunless %}}
+                    .btn-theme.hb-btn2-{{ block.id }}::before{background-color:{{ block.settings.bg_button_hover_2 }};}
+                    .btn-outline.hb-btn2-{{ block.id }}{color:{{ block.settings.color_button_2 }};border:2px solid {{ block.settings.bg_button_2 }};background-color:transparent;}
+                    .btn-outline.hb-btn2-{{ block.id }}:hover{border-color:{{ block.settings.bg_button_hover_2 }};color:{{ block.settings.color_button_hover_2 }};{% unless settings.enable_button_hover %}background-color:{{ block.settings.bg_button_hover_2 }};{% endunless %}}
+                    .btn-outline.hb-btn2-{{ block.id }}::before{background-color:{{ block.settings.bg_button_hover_2 }};}
+                    .btn-underline.hb-btn2-{{ block.id }}{color:{{ block.settings.color_button_2 }} !important;}
+                    .btn-underline.hb-btn2-{{ block.id }}:before{background:{{ block.settings.bg_button_2 }} !important;}
+                    .btn-underline.hb-btn2-{{ block.id }}:after{background:{{ block.settings.bg_button_hover_2 }} !important;}
+                    .btn-underline.hb-btn2-{{ block.id }}:hover{color:{{ block.settings.color_button_hover_2 }} !important;}
+                  </style>
+                  <a href="{{ block.settings.button_link_2 }}" class="btn hb-btn2-{{ block.id }} {{ block.settings.stylebtns_2 }}">
+                    <span>{{ block.settings.button_label_2 }}</span>
+                  </a>
+                  {%- endif -%}
+
+                </div>
+                {%- endif -%}
+
+              </div>
+            </div>
+          </div>
+        </div>
+        {%- endunless -%}
+
+      </div>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Arrow navigation {%- endcomment -%}
+    {%- if section.settings.e_arrow and section.blocks.size > 1 -%}
+    <div class="hb-arrows">
+      <button class="hb-arrow-btn hb-arrow-prev" aria-label="{{ 'sections.slideshow.previous_slide' | t }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button class="hb-arrow-btn hb-arrow-next" aria-label="{{ 'sections.slideshow.next_slide' | t }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} Dot navigation {%- endcomment -%}
+    {%- if section.settings.e_dot and section.blocks.size > 1 -%}
+    <div class="hb-dots" role="tablist" aria-label="{{ 'sections.slideshow.slide_navigation' | t }}">
+      {%- for block in section.blocks -%}
+      <button class="hb-dot{% if forloop.first %} is-active{% endif %}"
+              role="tab"
+              aria-selected="{{ forloop.first }}"
+              aria-label="Slide {{ forloop.index }}"
+              data-index="{{ forloop.index0 }}"></button>
+      {%- endfor -%}
+    </div>
+    {%- endif -%}
+
+  </div>
+
+  {%- else -%}
+  <div class="placeholder-noblocks">{{ 'homepage.onboarding.no_content' | t }}</div>
+  {%- endif -%}
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var el = document.getElementById('hb-{{ section.id }}');
+  if (!el) return;
+
+  var slides     = Array.prototype.slice.call(el.querySelectorAll('.hb-slide'));
+  var dots       = Array.prototype.slice.call(el.querySelectorAll('.hb-dot'));
+  var prevBtn    = el.querySelector('.hb-arrow-prev');
+  var nextBtn    = el.querySelector('.hb-arrow-next');
+  var total      = slides.length;
+  var current    = 0;
+  var timer      = null;
+  var autoplay   = el.getAttribute('data-autoplay') === 'true';
+  var speed      = parseInt(el.getAttribute('data-speed'), 10) || 5000;
+  var transition = el.getAttribute('data-transition') || 'fade';
+  var animating  = false;
+  var ANIM_DUR   = 650; // ms — matches CSS transition duration
+
+  if (total <= 1) return;
+
+  /* ── Go to slide ─────────────────────────────────────────── */
+  function goTo(index) {
+    if (animating) return;
+    var next = ((index % total) + total) % total;
+    if (next === current) return;
+
+    animating = true;
+    var prev = current;
+    current  = next;
+
+    if (transition === 'slide') {
+      slides[current].classList.remove('is-leaving');
+      slides[prev].classList.add('is-leaving');
+      slides[prev].classList.remove('is-active');
+      slides[current].classList.add('is-active');
+    } else {
+      // fade or zoom — just swap opacity
+      slides[prev].classList.remove('is-active');
+      slides[current].classList.add('is-active');
+    }
+
+    // Sync dots
+    dots.forEach(function (d, i) {
+      var active = i === current;
+      d.classList.toggle('is-active', active);
+      d.setAttribute('aria-selected', String(active));
+    });
+
+    setTimeout(function () {
+      animating = false;
+      if (transition === 'slide') {
+        slides[prev].classList.remove('is-leaving');
+      }
+    }, ANIM_DUR);
+  }
+
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+
+  /* ── Autoplay ────────────────────────────────────────────── */
+  function startAutoplay() {
+    if (!autoplay) return;
+    clearInterval(timer);
+    timer = setInterval(nextSlide, speed);
+  }
+  function stopAutoplay() {
+    clearInterval(timer);
+    timer = null;
+  }
+
+  /* ── Event listeners ─────────────────────────────────────── */
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function () {
+      stopAutoplay(); prevSlide(); startAutoplay();
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function () {
+      stopAutoplay(); nextSlide(); startAutoplay();
+    });
+  }
+
+  dots.forEach(function (dot) {
+    dot.addEventListener('click', function () {
+      stopAutoplay();
+      goTo(parseInt(dot.getAttribute('data-index'), 10));
+      startAutoplay();
+    });
+  });
+
+  // Pause on hover / focus
+  el.addEventListener('mouseenter', stopAutoplay);
+  el.addEventListener('mouseleave', startAutoplay);
+  el.addEventListener('focusin',    stopAutoplay);
+  el.addEventListener('focusout',   startAutoplay);
+
+  // Touch / swipe support
+  var touchX = 0;
+  el.addEventListener('touchstart', function (e) {
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
+  el.addEventListener('touchend', function (e) {
+    var diff = touchX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      stopAutoplay();
+      if (diff > 0) nextSlide(); else prevSlide();
+      startAutoplay();
+    }
+  }, { passive: true });
+
+  // Keyboard navigation when focused inside slider
+  el.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft')  { stopAutoplay(); prevSlide(); startAutoplay(); }
+    if (e.key === 'ArrowRight') { stopAutoplay(); nextSlide(); startAutoplay(); }
+  });
+
+  // IntersectionObserver — stop when off-screen to save resources
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { startAutoplay(); }
+        else { stopAutoplay(); }
+      });
+    }, { threshold: 0.1 });
+    io.observe(el);
+  } else {
+    startAutoplay();
+  }
+
+}());
+</script>
+
+{% schema %}
+{
+  "name": "Hero Banner",
+  "class": "index-section index-section--hero-banner",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "select",
+      "id": "width",
+      "label": "Section width",
+      "default": "full",
+      "options": [
+        { "value": "full",             "label": "Full width" },
+        { "value": "container-fluid", "label": "Container fluid" },
+        { "value": "container",       "label": "Boxed" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "inner_width",
+      "label": "Content inner width",
+      "default": "container",
+      "options": [
+        { "value": "container-fluid", "label": "Container fluid" },
+        { "value": "container",       "label": "Boxed" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Desktop aspect ratio"
+    },
+    {
+      "type": "select",
+      "id": "desktop_ratio",
+      "label": "Desktop ratio",
+      "default": "16:9",
+      "info": "\"Adapt\" uses the first slide's desktop image ratio",
+      "options": [
+        { "value": "adapt", "label": "Adapt to image" },
+        { "value": "21:9",  "label": "21:9  (Ultrawide)" },
+        { "value": "16:9",  "label": "16:9  (Widescreen)" },
+        { "value": "4:3",   "label": "4:3   (Classic)" },
+        { "value": "3:2",   "label": "3:2   (Photo)" },
+        { "value": "1:1",   "label": "1:1   (Square)" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Mobile aspect ratio"
+    },
+    {
+      "type": "select",
+      "id": "mobile_ratio",
+      "label": "Mobile ratio",
+      "default": "2:3",
+      "info": "\"Adapt\" uses the first slide's mobile image ratio (or desktop if none)",
+      "options": [
+        { "value": "adapt", "label": "Adapt to image" },
+        { "value": "16:9",  "label": "16:9  (Landscape)" },
+        { "value": "4:3",   "label": "4:3   (Classic)" },
+        { "value": "3:2",   "label": "3:2   (Photo)" },
+        { "value": "1:1",   "label": "1:1   (Square)" },
+        { "value": "2:3",   "label": "2:3   (Portrait)" },
+        { "value": "9:16",  "label": "9:16  (Story)" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Slideshow"
+    },
+    {
+      "type": "checkbox",
+      "id": "autorotate",
+      "label": "Auto-rotate slides",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autorotate_speed",
+      "label": "Change slides every",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    },
+    {
+      "type": "select",
+      "id": "transition",
+      "label": "Transition effect",
+      "default": "fade",
+      "options": [
+        { "value": "fade",  "label": "Fade" },
+        { "value": "slide", "label": "Slide" },
+        { "value": "zoom",  "label": "Zoom (Ken Burns)" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Arrow navigation"
+    },
+    {
+      "type": "checkbox",
+      "id": "e_arrow",
+      "label": "Show arrows",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "color_arrow",
+      "label": "Arrow icon color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "bg_arrow",
+      "label": "Arrow background",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "opacity_arrow",
+      "label": "Arrow background opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.35
+    },
+    {
+      "type": "header",
+      "content": "Dot navigation"
+    },
+    {
+      "type": "checkbox",
+      "id": "e_dot",
+      "label": "Show dots",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "dot_style",
+      "label": "Dot style",
+      "default": "bar",
+      "options": [
+        { "value": "circle", "label": "Circle" },
+        { "value": "bar",    "label": "Progress bar" }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "color_dot_nav",
+      "label": "Dot color (inactive)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "color_dot_active",
+      "label": "Dot color (active)",
+      "default": "#C99A5C"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Images"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_desktop",
+          "label": "Desktop image"
+        },
+        {
+          "type": "select",
+          "id": "img_position",
+          "label": "Desktop image position",
+          "default": "center center",
+          "options": [
+            { "label": "Top left",      "value": "left top" },
+            { "label": "Top center",    "value": "center top" },
+            { "label": "Top right",     "value": "right top" },
+            { "label": "Middle left",   "value": "left center" },
+            { "label": "Middle center", "value": "center center" },
+            { "label": "Middle right",  "value": "right center" },
+            { "label": "Bottom left",   "value": "left bottom" },
+            { "label": "Bottom center", "value": "center bottom" },
+            { "label": "Bottom right",  "value": "right bottom" }
+          ]
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Mobile image",
+          "info": "Leave blank to use desktop image on mobile"
+        },
+        {
+          "type": "select",
+          "id": "img_position_mobile",
+          "label": "Mobile image position",
+          "default": "center center",
+          "options": [
+            { "label": "Top left",      "value": "left top" },
+            { "label": "Top center",    "value": "center top" },
+            { "label": "Top right",     "value": "right top" },
+            { "label": "Middle left",   "value": "left center" },
+            { "label": "Middle center", "value": "center center" },
+            { "label": "Middle right",  "value": "right center" },
+            { "label": "Bottom left",   "value": "left bottom" },
+            { "label": "Bottom center", "value": "center bottom" },
+            { "label": "Bottom right",  "value": "right bottom" }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "bg_color",
+          "label": "Slide background color",
+          "default": "#F8EDE7"
+        },
+        {
+          "type": "header",
+          "content": "Overlay"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_overlay",
+          "label": "Enable overlay",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "gradient_overlay",
+          "label": "Gradient overlay (bottom fade)",
+          "default": false
+        },
+        {
+          "type": "color",
+          "id": "overlay_color",
+          "label": "Overlay color",
+          "default": "#000000"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "label": "Overlay opacity",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "default": 0.4
+        },
+        {
+          "type": "header",
+          "content": "Content"
+        },
+        {
+          "type": "select",
+          "id": "text_alignment",
+          "label": "Text alignment",
+          "default": "center center",
+          "options": [
+            { "label": "Top left",      "value": "left top" },
+            { "label": "Top center",    "value": "center top" },
+            { "label": "Top right",     "value": "right top" },
+            { "label": "Middle left",   "value": "left center" },
+            { "label": "Middle center", "value": "center center" },
+            { "label": "Middle right",  "value": "right center" },
+            { "label": "Bottom left",   "value": "left bottom" },
+            { "label": "Bottom center", "value": "center bottom" },
+            { "label": "Bottom right",  "value": "right bottom" }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "slide_toptitle",
+          "label": "Top label"
+        },
+        {
+          "type": "color",
+          "id": "slide_toptitle_color",
+          "label": "Top label color",
+          "default": "#cccccc"
+        },
+        {
+          "type": "text",
+          "id": "slide_title",
+          "label": "Heading",
+          "default": "Hero Heading"
+        },
+        {
+          "type": "color",
+          "id": "slide_title_color",
+          "label": "Heading color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "textarea",
+          "id": "subheading",
+          "label": "Subheading",
+          "default": "Tell your brand's story through images"
+        },
+        {
+          "type": "color",
+          "id": "subheading_color",
+          "label": "Subheading color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "header",
+          "content": "Button 1"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Button link"
+        },
+        {
+          "type": "select",
+          "id": "stylebtns",
+          "label": "Button style",
+          "default": "btn-theme",
+          "options": [
+            { "value": "btn-theme",   "label": "Solid" },
+            { "value": "btn-outline", "label": "Outline" },
+            { "value": "btn-underline","label": "Underline" }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "color_button",
+          "label": "Button text color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "bg_button",
+          "label": "Button background",
+          "default": "#C99A5C"
+        },
+        {
+          "type": "color",
+          "id": "color_button_hover",
+          "label": "Button text color (hover)",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "bg_button_hover",
+          "label": "Button background (hover)",
+          "default": "#000000"
+        },
+        {
+          "type": "header",
+          "content": "Button 2"
+        },
+        {
+          "type": "text",
+          "id": "button_label_2",
+          "label": "Button 2 label"
+        },
+        {
+          "type": "url",
+          "id": "button_link_2",
+          "label": "Button 2 link"
+        },
+        {
+          "type": "select",
+          "id": "stylebtns_2",
+          "label": "Button 2 style",
+          "default": "btn-outline",
+          "options": [
+            { "value": "btn-theme",    "label": "Solid" },
+            { "value": "btn-outline",  "label": "Outline" },
+            { "value": "btn-underline","label": "Underline" }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "color_button_2",
+          "label": "Button 2 text color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "bg_button_2",
+          "label": "Button 2 background",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "color_button_hover_2",
+          "label": "Button 2 text color (hover)",
+          "default": "#000000"
+        },
+        {
+          "type": "color",
+          "id": "bg_button_hover_2",
+          "label": "Button 2 background (hover)",
+          "default": "#ffffff"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Banner",
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "slide_title": "Welcome to Our Store",
+            "subheading": "Discover our exclusive fragrance collection",
+            "button_label": "Shop Now",
+            "show_overlay": true,
+            "overlay_opacity": 0.3
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
