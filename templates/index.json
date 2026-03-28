@@ -9,6 +9,10 @@
  */
 {
   "sections": {
+    "1774622045cb0bae19": {
+      "type": "_blocks",
+      "settings": {}
+    },
     "clean_hero_banner_mFYfUM": {
       "type": "clean-hero-banner",
       "blocks": {
@@ -350,6 +354,7 @@
     }
   },
   "order": [
+    "1774622045cb0bae19",
     "clean_hero_banner_mFYfUM",
     "product_list_swiper_e7fDdq",
     "featured_collections_3_8nfJ6D",
