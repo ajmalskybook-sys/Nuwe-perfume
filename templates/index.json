@@ -9,10 +9,6 @@
  */
 {
   "sections": {
-    "1774622045cb0bae19": {
-      "type": "_blocks",
-      "settings": {}
-    },
     "product_list_swiper_e7fDdq": {
       "type": "product-list-swiper",
       "name": "Product list (Swiper)",
@@ -329,7 +325,6 @@
     }
   },
   "order": [
-    "1774622045cb0bae19",
     "product_list_swiper_e7fDdq",
     "featured_collections_3_8nfJ6D",
     "category_mosaic_rkAniE",
