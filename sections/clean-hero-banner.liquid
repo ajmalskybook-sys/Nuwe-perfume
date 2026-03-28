@@ -171,20 +171,14 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   }
 
-  /* ── RESPONSIVE RATIO BOXES ─────────────────────── */
-  #CleanSlider-{{ section.id }} .ratio-box--desktop {
-    display: none;
-  }
-  #CleanSlider-{{ section.id }} .ratio-box--mobile {
-    display: block;
+  /* ── RATIO BOX RESPONSIVE ────────────────────────── */
+  #CleanSlider-{{ section.id }} .ratio-box {
+    padding-bottom: {{ mobile_ratio_val }};
   }
 
   @media screen and (min-width: 768px) {
-    #CleanSlider-{{ section.id }} .ratio-box--desktop {
-      display: block;
-    }
-    #CleanSlider-{{ section.id }} .ratio-box--mobile {
-      display: none;
+    #CleanSlider-{{ section.id }} .ratio-box {
+      padding-bottom: {{ desktop_ratio_val }};
     }
   }
 
@@ -231,8 +225,7 @@
 
           {%- comment -%} ── IMAGE (picture: mobile source + desktop fallback) ── {%- endcomment -%}
           <div class="img-wrap">
-            <div class="ratio-box ratio-box--desktop" style="padding-bottom: {{ desktop_ratio_val }};"></div>
-            <div class="ratio-box ratio-box--mobile" style="padding-bottom: {{ mobile_ratio_val }};"></div>
+            <div class="ratio-box" style="padding-bottom: {{ mobile_ratio_val }};"></div>
             <picture>
               {%- if block.settings.image_m != blank -%}
                 <source
