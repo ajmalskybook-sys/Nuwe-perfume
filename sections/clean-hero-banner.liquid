@@ -90,6 +90,29 @@
     outline: none;
   }
 
+  /* ── PICTURE ELEMENT FIX ────────────────────────── */
+  #CleanSlider-{{ section.id }} picture {
+    display: block;
+    line-height: 0;
+    font-size: 0;
+  }
+
+  /* ── TRACK OVERFLOW FIX ─────────────────────────── */
+  #CleanSlider-{{ section.id }} .clean-hero-track {
+    overflow: hidden;
+  }
+
+  /* ── SECTION BORDER RESET ───────────────────────── */
+  #CleanSlider-{{ section.id }} {
+    border: none !important;
+    outline: none !important;
+  }
+
+  #CleanSlider-{{ section.id }}::before,
+  #CleanSlider-{{ section.id }}::after {
+    display: none !important;
+  }
+
   /* ── IMAGE WRAPPERS ──────────────────────────────── */
   #CleanSlider-{{ section.id }} .img-wrap {
     position: relative;
